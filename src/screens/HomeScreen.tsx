@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { useFocusEffect } from '@react-navigation/native'
 import { useAuth } from '../context/AuthContext'
 import { attendanceApi } from '../api/client'
+import { enqueue, getQueue, removeFirst, isNetworkError } from '../utils/offlineQueue'
 
 const NAVY = '#1e3a5f'
 
@@ -29,10 +30,12 @@ function fmt(ts: string | null) {
 
 export default function HomeScreen() {
   const { user, employee } = useAuth()
-  const [today, setToday]       = useState<any>(null)
-  const [loading, setLoading]   = useState(true)
+  const [today, setToday]           = useState<any>(null)
+  const [loading, setLoading]       = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [clocking, setClocking] = useState(false)
+  const [clocking, setClocking]     = useState(false)
+  const [pendingQueue, setPending]  = useState(0)
+  const [syncing, setSyncing]       = useState(false)
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -46,9 +49,43 @@ export default function HomeScreen() {
       setLoading(false)
       setRefreshing(false)
     }
+    const q = await getQueue()
+    setPending(q.length)
   }, [])
 
-  useFocusEffect(useCallback(() => { load() }, [load]))
+  const syncQueue = useCallback(async () => {
+    const q = await getQueue()
+    if (q.length === 0) return
+    setSyncing(true)
+    let synced = 0
+    for (const action of q) {
+      try {
+        if (action.type === 'clock-in') {
+          await attendanceApi.clockIn({ lat: action.lat, lng: action.lng })
+        } else {
+          await attendanceApi.clockOut({ lat: action.lat, lng: action.lng })
+        }
+        await removeFirst()
+        synced++
+      } catch (e: any) {
+        if (isNetworkError(e)) break
+        await removeFirst()
+      }
+    }
+    setSyncing(false)
+    if (synced > 0) {
+      Alert.alert('Synced', `${synced} offline action(s) uploaded.`)
+      load()
+    } else {
+      const remaining = await getQueue()
+      setPending(remaining.length)
+    }
+  }, [load])
+
+  useFocusEffect(useCallback(() => {
+    load()
+    syncQueue()
+  }, [load, syncQueue]))
 
   async function takeSelfieAndLocation() {
     const [camPerm, locPerm] = await Promise.all([
@@ -87,12 +124,21 @@ export default function HomeScreen() {
     setClocking(true)
     try {
       const { selfie, lat, lng } = await takeSelfieAndLocation()
-      await attendanceApi.clockIn({ selfie, lat, lng })
-      Alert.alert('Success', 'Clock-in recorded!')
-      load()
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || 'Clock-in failed'
-      Alert.alert('Error', msg)
+      try {
+        await attendanceApi.clockIn({ selfie, lat, lng })
+        Alert.alert('Success', 'Clock-in recorded!')
+        load()
+      } catch (e: any) {
+        if (isNetworkError(e)) {
+          await enqueue({ type: 'clock-in', lat, lng })
+          setPending(p => p + 1)
+          Alert.alert('Offline', 'No connection. Clock-in saved locally and will sync when online.')
+        } else {
+          Alert.alert('Error', e?.response?.data?.message || 'Clock-in failed')
+        }
+      }
+    } catch {
+      Alert.alert('Error', 'Could not capture location or camera.')
     } finally {
       setClocking(false)
     }
@@ -102,12 +148,21 @@ export default function HomeScreen() {
     setClocking(true)
     try {
       const { selfie, lat, lng } = await takeSelfieAndLocation()
-      await attendanceApi.clockOut({ selfie, lat, lng })
-      Alert.alert('Success', 'Clock-out recorded!')
-      load()
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || 'Clock-out failed'
-      Alert.alert('Error', msg)
+      try {
+        await attendanceApi.clockOut({ selfie, lat, lng })
+        Alert.alert('Success', 'Clock-out recorded!')
+        load()
+      } catch (e: any) {
+        if (isNetworkError(e)) {
+          await enqueue({ type: 'clock-out', lat, lng })
+          setPending(p => p + 1)
+          Alert.alert('Offline', 'No connection. Clock-out saved locally and will sync when online.')
+        } else {
+          Alert.alert('Error', e?.response?.data?.message || 'Clock-out failed')
+        }
+      }
+    } catch {
+      Alert.alert('Error', 'Could not capture location or camera.')
     } finally {
       setClocking(false)
     }
@@ -137,10 +192,23 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Hello, {employee?.full_name?.split(' ')[0] ?? user?.name} 👋</Text>
           <Text style={styles.date}>{dateStr}</Text>
         </View>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {(employee?.full_name ?? user?.name ?? 'U').charAt(0).toUpperCase()}
-          </Text>
+        <View style={{ alignItems: 'flex-end', gap: 6 }}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {(employee?.full_name ?? user?.name ?? 'U').charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          {pendingQueue > 0 && (
+            <TouchableOpacity
+              onPress={syncQueue}
+              disabled={syncing}
+              style={styles.pendingBadge}
+            >
+              <Text style={styles.pendingText}>
+                {syncing ? 'Syncing…' : `${pendingQueue} pending`}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -320,4 +388,9 @@ const styles = StyleSheet.create({
   },
   empNo:   { color: NAVY, fontWeight: '700', fontSize: 15, letterSpacing: 1 },
   empDept: { color: '#6b7280', fontSize: 12, marginTop: 4 },
+
+  pendingBadge: {
+    backgroundColor: '#f59e0b', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3,
+  },
+  pendingText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 })
