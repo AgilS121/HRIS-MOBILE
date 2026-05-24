@@ -1,12 +1,12 @@
 # feel-attendance
 
-Mobile attendance app built with **React Native + Expo**, powered by the [Feel language](https://github.com/AgilS121/feel) backend. Part of the HRIS (Human Resource Information System) portfolio project.
+Mobile attendance app built with **React Native + Expo**, powered by the [Feel language](https://github.com/AgilS121/feel) backend. Part of the HRIS portfolio project.
 
 ## Features
 
 | Screen | Description |
 |---|---|
-| **Login** | Authenticate with email or employee number |
+| **Login** | Authenticate with email + password |
 | **Home** | Today's attendance status — clock-in & clock-out with front camera selfie + GPS |
 | **Attendance History** | Monthly attendance log with status badges (present, late, absent, sick, leave, WFH) |
 | **Leave** | View leave balance, submit leave requests, cancel pending requests |
@@ -15,15 +15,19 @@ Mobile attendance app built with **React Native + Expo**, powered by the [Feel l
 ### Clock-In / Clock-Out
 - Front camera selfie (optional if permission denied)
 - GPS coordinates captured automatically
-- Late detection: compared against company work schedule (`08:00`, 15-min grace by default)
-- Shows **minutes late** and **salary deduction** on Home screen if late
+- Late detection vs company work schedule — shows **minutes late** and **deduction amount**
+- **Offline support** — if no connection, action is queued in AsyncStorage and auto-synced when back online. Pending badge shown in header.
+
+### Device Binding
+- A persistent `device_id` (UUID) is generated on first launch and stored in AsyncStorage
+- Sent with every login — backend records it alongside `last_login` and `last_ip`
 
 ## Tech Stack
 
 - **React Native** 0.85 + **Expo** SDK 56
 - **React Navigation** v7 — bottom tabs + native stack
 - **Axios** — HTTP client with JWT interceptor
-- **AsyncStorage** — persistent token storage
+- **AsyncStorage** — persistent token, device ID, and offline action queue
 - **expo-camera** / **expo-image-picker** — selfie capture
 - **expo-location** — GPS coordinates
 
@@ -32,17 +36,19 @@ Mobile attendance app built with **React Native + Expo**, powered by the [Feel l
 ```
 src/
   api/
-    client.ts        # axios instance + attendanceApi
+    client.ts              # axios instance + attendanceApi, leaveApi, authApi
   context/
-    AuthContext.tsx  # JWT auth state + employee profile
+    AuthContext.tsx         # JWT auth state + employee profile + device ID
   navigation/
-    index.tsx        # tab + stack navigator setup
+    index.tsx              # tab + stack navigator setup
   screens/
     LoginScreen.tsx
-    HomeScreen.tsx   # clock-in/out, today's status
+    HomeScreen.tsx          # clock-in/out, today's status, offline queue sync
     HistoryScreen.tsx
     LeaveScreen.tsx
     ProfileScreen.tsx
+  utils/
+    offlineQueue.ts         # AsyncStorage queue for offline clock-in/out
 ```
 
 ## Getting Started
@@ -75,7 +81,7 @@ Edit `src/api/client.ts` and set `BASE_URL` to your backend:
 // Local development
 const BASE_URL = 'http://localhost:3000/api'
 
-// Device on same network
+// Physical device on same network
 const BASE_URL = 'http://192.168.x.x:3000/api'
 ```
 
@@ -87,13 +93,13 @@ Key endpoints used:
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/auth/login` | Login, returns JWT |
+| `POST` | `/auth/login` | Login with optional `device_id`, returns JWT |
 | `GET` | `/auth/me` | Current user info |
 | `GET` | `/hr/employees/me` | Employee profile linked to JWT user |
 | `GET` | `/hr/attendance/today` | Today's attendance record |
 | `POST` | `/hr/attendance/clock-in` | Clock in (multipart: selfie + lat/lng) |
 | `POST` | `/hr/attendance/clock-out` | Clock out (multipart: selfie + lat/lng) |
-| `GET` | `/hr/attendance/mine` | Attendance history |
+| `GET` | `/hr/attendance/my` | Attendance history (year + month) |
 | `GET` | `/hr/leave-balances` | Leave balance per type |
 | `GET` | `/hr/leave-requests/mine` | My leave requests |
 | `POST` | `/hr/leave-requests` | Submit leave request |
