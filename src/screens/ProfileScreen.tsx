@@ -1,6 +1,6 @@
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Alert,
+  ScrollView, Alert, Platform,
 } from 'react-native'
 import { useAuth } from '../context/AuthContext'
 
@@ -19,6 +19,10 @@ export default function ProfileScreen() {
   const { user, employee, logout } = useAuth()
 
   function confirmLogout() {
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to sign out?')) logout()
+      return
+    }
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: logout },

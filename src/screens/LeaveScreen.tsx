@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   Modal, TextInput, ScrollView, ActivityIndicator,
-  Alert, RefreshControl,
+  Alert, RefreshControl, Platform,
 } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { useAuth } from '../context/AuthContext'
@@ -103,20 +103,21 @@ export default function LeaveScreen() {
   }
 
   async function handleCancel(id: number) {
+    const doCancel = async () => {
+      try {
+        await leaveApi.cancel(id)
+        load(true)
+      } catch (e: any) {
+        Alert.alert('Error', e?.response?.data?.message || 'Failed to cancel')
+      }
+    }
+    if (Platform.OS === 'web') {
+      if (window.confirm('Cancel this leave request?')) doCancel()
+      return
+    }
     Alert.alert('Cancel Request', 'Cancel this leave request?', [
       { text: 'No', style: 'cancel' },
-      {
-        text: 'Yes, Cancel',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await leaveApi.cancel(id)
-            load(true)
-          } catch (e: any) {
-            Alert.alert('Error', e?.response?.data?.message || 'Failed to cancel')
-          }
-        },
-      },
+      { text: 'Yes, Cancel', style: 'destructive', onPress: doCancel },
     ])
   }
 

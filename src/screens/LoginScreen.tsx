@@ -39,7 +39,7 @@ export default function LoginScreen() {
           <Text style={styles.logoLetter}>H</Text>
         </View>
         <Text style={styles.title}>HRIS Attendance</Text>
-        <Text style={styles.subtitle}>TUV Nord Indonesia</Text>
+        <Text style={styles.subtitle}>HR Management System</Text>
 
         {/* Form */}
         <View style={styles.form}>

@@ -113,9 +113,11 @@ export default function HomeScreen() {
     }
   }
 
-  const hasClockedIn  = today?.clock_in_at != null
-  const hasClockedOut = today?.clock_out_at != null
-  const statusColor   = today?.status ? (STATUS_COLOR[today.status] ?? '#6b7280') : '#6b7280'
+  const hasClockedIn   = today?.clock_in_at != null
+  const hasClockedOut  = today?.clock_out_at != null
+  const statusColor    = today?.status ? (STATUS_COLOR[today.status] ?? '#6b7280') : '#6b7280'
+  const minutesLate    = today?.minutes_late ?? 0
+  const deduction      = today?.deduction_amount ?? 0
 
   const now = new Date()
   const dateStr = now.toLocaleDateString('en-US', {
@@ -126,11 +128,12 @@ export default function HomeScreen() {
     <ScrollView
       style={styles.root}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor="#fff" />}
     >
-      {/* Header */}
+      {/* Navy header banner */}
       <View style={styles.header}>
         <View>
+          <Text style={styles.appLabel}>HRIS Attendance</Text>
           <Text style={styles.greeting}>Hello, {employee?.full_name?.split(' ')[0] ?? user?.name} 👋</Text>
           <Text style={styles.date}>{dateStr}</Text>
         </View>
@@ -142,6 +145,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Today status card */}
+      <View style={styles.body}>
       <View style={styles.statusCard}>
         <Text style={styles.cardLabel}>Today's Attendance</Text>
         {loading ? (
@@ -168,6 +172,14 @@ export default function HomeScreen() {
                 <Text style={styles.timeValue}>{fmt(today?.clock_out_at)}</Text>
               </View>
             </View>
+
+            {minutesLate > 0 && (
+              <View style={styles.lateBox}>
+                <Text style={styles.lateText}>
+                  {minutesLate} min late{deduction > 0 ? ` · Deduction: Rp${deduction.toLocaleString('id-ID')}` : ''}
+                </Text>
+              </View>
+            )}
 
             {today?.note && (
               <Text style={styles.note}>Note: {today.note}</Text>
@@ -222,25 +234,31 @@ export default function HomeScreen() {
           </Text>
         </View>
       )}
+      </View>
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   root:    { flex: 1, backgroundColor: '#f1f5f9' },
-  content: { padding: 20, paddingBottom: 40 },
+  content: { paddingBottom: 40 },
 
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    backgroundColor: NAVY,
+    paddingHorizontal: 20,
+    paddingTop: 52,
+    paddingBottom: 24,
     marginBottom: 20,
   },
-  greeting: { fontSize: 20, fontWeight: '700', color: '#111827' },
-  date:     { fontSize: 13, color: '#6b7280', marginTop: 2 },
+  appLabel: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.55)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
+  greeting: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  date:     { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
   avatar: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: NAVY, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { color: '#fff', fontWeight: '700', fontSize: 18 },
 
@@ -269,7 +287,9 @@ const styles = StyleSheet.create({
   timeLabel:   { fontSize: 12, color: '#9ca3af', marginBottom: 4 },
   timeValue:   { fontSize: 22, fontWeight: '700', color: '#111827' },
   timeDivider: { width: 1, height: 40, backgroundColor: '#e5e7eb' },
-  note:        { marginTop: 12, fontSize: 12, color: '#6b7280', fontStyle: 'italic' },
+  lateBox:  { marginTop: 10, backgroundColor: '#fef3c7', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  lateText: { fontSize: 12, color: '#b45309', fontWeight: '600' },
+  note:     { marginTop: 12, fontSize: 12, color: '#6b7280', fontStyle: 'italic' },
 
   clockingBox: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -292,10 +312,12 @@ const styles = StyleSheet.create({
   actionLabel: { fontSize: 14, fontWeight: '700', color: '#111827' },
   actionSub:   { fontSize: 11, color: '#9ca3af' },
 
+  body: { paddingHorizontal: 20, paddingTop: 4 },
+
   empCard: {
-    backgroundColor: NAVY, borderRadius: 12, padding: 16,
-    alignItems: 'center',
+    backgroundColor: NAVY + '15', borderRadius: 12, padding: 16,
+    alignItems: 'center', borderWidth: 1, borderColor: NAVY + '25',
   },
-  empNo:   { color: '#fff', fontWeight: '700', fontSize: 15, letterSpacing: 1 },
-  empDept: { color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 4 },
+  empNo:   { color: NAVY, fontWeight: '700', fontSize: 15, letterSpacing: 1 },
+  empDept: { color: '#6b7280', fontSize: 12, marginTop: 4 },
 })

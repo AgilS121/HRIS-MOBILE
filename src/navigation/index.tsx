@@ -23,12 +23,14 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: true,
-        headerStyle: { backgroundColor: '#fff' },
-        headerTitleStyle: { color: NAVY, fontWeight: '700' },
+        headerStyle: { backgroundColor: NAVY },
+        headerTitleStyle: { color: '#fff', fontWeight: '700', fontSize: 17 },
+        headerTintColor: '#fff',
         tabBarActiveTintColor: NAVY,
         tabBarInactiveTintColor: '#9ca3af',
         tabBarStyle: {
           borderTopColor: '#e5e7eb',
+          backgroundColor: '#fff',
           height: 60,
           paddingBottom: 8,
         },
@@ -39,16 +41,18 @@ function MainTabs() {
         name="Home"
         component={HomeScreen}
         options={{
-          title: 'Attendance',
+          headerShown: false,
           tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+          tabBarLabel: 'Home',
         }}
       />
       <Tab.Screen
         name="History"
         component={AttendanceScreen}
         options={{
-          title: 'History',
+          title: 'Attendance History',
           tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />,
+          tabBarLabel: 'History',
         }}
       />
       <Tab.Screen
@@ -57,14 +61,16 @@ function MainTabs() {
         options={{
           title: 'Leave',
           tabBarIcon: ({ focused }) => <TabIcon emoji="🏖️" focused={focused} />,
+          tabBarLabel: 'Leave',
         }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
-          title: 'Profile',
+          title: 'My Profile',
           tabBarIcon: ({ focused }) => <TabIcon emoji="👤" focused={focused} />,
+          tabBarLabel: 'Profile',
         }}
       />
     </Tab.Navigator>
