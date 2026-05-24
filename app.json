@@ -11,13 +11,25 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1e3a5f",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
+    "plugins": [
+      ["expo-camera", { "cameraPermission": "Allow HRIS to access your camera for attendance selfie" }],
+      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "Allow HRIS to access your location for attendance verification" }],
+      ["expo-image-picker", { "photosPermission": "Allow HRIS to access your photos" }]
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     }
