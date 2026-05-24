@@ -53,8 +53,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function getOrCreateDeviceId(): Promise<string> {
+    let id = await AsyncStorage.getItem('device_id')
+    if (!id) {
+      id = Math.random().toString(36).slice(2) + Date.now().toString(36) + Math.random().toString(36).slice(2)
+      await AsyncStorage.setItem('device_id', id)
+    }
+    return id
+  }
+
   async function login(email: string, password: string) {
-    const data = await authApi.login(email, password)
+    const device_id = await getOrCreateDeviceId()
+    const data = await authApi.login(email, password, device_id)
     await AsyncStorage.setItem('token', data.token)
     setUser(data.user)
     const emp = await employeeApi.me().catch(() => null)

@@ -19,8 +19,8 @@ export default api
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  login: (email: string, password: string) =>
-    api.post('/auth/login', { email, password }).then((r) => r.data.data),
+  login: (email: string, password: string, device_id?: string) =>
+    api.post('/auth/login', { email, password, device_id }).then((r) => r.data.data),
   me: () => api.get('/auth/me').then((r) => r.data.data),
   logout: () => api.post('/auth/logout').then((r) => r.data),
 }
